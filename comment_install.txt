@@ -1,0 +1,437 @@
+```bash
+# ═══════════════════════════════════════════════════════════════════════════════
+# GUIDE D'INSTALLATION COMPLET — CryptoStegano Pro v2.0.0
+# Installation complète Windows / Linux / macOS en un seul fichier
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 🪟 INSTALLATION WINDOWS (PowerShell Administrateur)
+# ──────────────────────────────────────────────────────────────────────────────
+
+# 1. INSTALLER JAVA JDK 17+
+winget install EclipseAdoptium.Temurin.17.JDK
+java -version  # Vérifier
+
+# 2. INSTALLER NMAP
+winget install Insecure.Nmap
+nmap --version  # Vérifier
+
+# 3. INSTALLER NPCAP (pour NIDS)
+# Télécharger depuis https://npcap.com/#download
+# Installer avec options : "WinPcap API-compatible Mode" + "Raw 802.11 traffic"
+# Redémarrer Windows
+
+# 4. CRÉER LA STRUCTURE
+mkdir CryptoSteganoPro
+cd CryptoSteganoPro
+mkdir rules, logs, exports, temp
+
+# 5. TÉLÉCHARGER L'APPLICATION
+# Télécharger CryptoSteganoPro-2.0.0.exe depuis GitHub Releases
+# https://github.com/samou2/CryptoSteganoPro/releases/latest
+
+# 6. CRÉER config.properties
+@"
+# CryptoStegano Pro — Configuration Windows
+shodan.api.key=
+gemini.api.key=
+
+nids.interface=Ethernet
+nids.rules.path=./rules/local.rules
+nids.syn.threshold=500
+nids.icmp.threshold=200
+nids.ssh.brute.threshold=50
+
+nmap.path=C:\\Program Files (x86)\\Nmap\\nmap.exe
+network.scan.timeout=30
+network.arp.range=192.168.1.0/24
+
+steg.default.bits=2
+steg.output.format=PNG
+steg.aes.enabled=true
+
+ui.theme=dark
+ui.language=fr
+ui.kiosk.mode=false
+
+log.level=INFO
+log.export.path=./logs/
+log.max.size=50MB
+"@ | Out-File -FilePath config.properties -Encoding UTF8
+
+# 7. CRÉER rules/local.rules
+@"
+# CryptoStegano Pro — Règles NIDS
+alert tcp any any -> `$HOME_NET any (flags:S; threshold: type threshold, track by_src, count 100, seconds 10; msg:"SYN Flood detected"; sid:1000001; rev:1;)
+alert tcp any any -> `$HOME_NET 22 (flags:S; threshold: type threshold, track by_src, count 5, seconds 60; msg:"SSH Brute Force attempt"; sid:1000002; rev:1;)
+alert tcp any any -> `$HOME_NET any (flags:S; threshold: type threshold, track by_src, count 50, seconds 10; msg:"Port Scan detected"; sid:1000003; rev:1;)
+alert icmp any any -> `$HOME_NET any (itype:8; threshold: type threshold, track by_src, count 50, seconds 10; msg:"ICMP Flood detected"; sid:1000004; rev:1;)
+alert udp any 53 -> `$HOME_NET any (byte_test:2,>,512,2; msg:"DNS Amplification attack"; sid:1000005; rev:1;)
+alert tcp any any -> `$HOME_NET 445 (content:"|FF|SMB"; depth:5; msg:"SMBv1 detected (deprecated)"; sid:1000006; rev:1;)
+alert tcp any any -> `$HOME_NET 23 (flags:S; msg:"Telnet connection attempt (insecure)"; sid:1000007; rev:1;)
+alert tcp any any -> `$HOME_NET 80 (content:"admin"; http_uri; nocase; msg:"Admin panel access attempt"; sid:1000008; rev:1;)
+alert tcp any any -> `$HOME_NET 21 (content:"USER anonymous"; nocase; msg:"FTP anonymous login attempt"; sid:1000009; rev:1;)
+alert tcp any any -> `$HOME_NET 3306 (content:"root"; msg:"MySQL root login attempt"; sid:1000010; rev:1;)
+"@ | Out-File -FilePath rules/local.rules -Encoding UTF8
+
+# 8. LANCER L'APPLICATION
+.\CryptoSteganoPro-2.0.0.exe
+# Ou avec JAR : java -jar CryptoSteganoPro-2.0.0.jar
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 🐧 INSTALLATION LINUX (Ubuntu/Debian)
+# ──────────────────────────────────────────────────────────────────────────────
+
+# 1. METTRE À JOUR LE SYSTÈME
+sudo apt update && sudo apt upgrade -y
+
+# 2. INSTALLER JAVA JDK 17+
+sudo apt install openjdk-17-jdk -y
+java -version  # Vérifier
+
+# 3. INSTALLER NMAP
+sudo apt install nmap -y
+nmap --version  # Vérifier
+
+# 4. INSTALLER LIBPCAP (pour NIDS)
+sudo apt install libpcap-dev -y
+
+# 5. CRÉER LA STRUCTURE
+mkdir -p ~/CryptoSteganoPro
+cd ~/CryptoSteganoPro
+mkdir -p rules logs exports temp
+
+# 6. TÉLÉCHARGER L'APPLICATION
+wget https://github.com/samou2/CryptoSteganoPro/releases/download/v2.0.0/CryptoSteganoPro-2.0.0.jar
+# Ou : curl -L -o CryptoSteganoPro-2.0.0.jar https://github.com/samou2/CryptoSteganoPro/releases/download/v2.0.0/CryptoSteganoPro-2.0.0.jar
+
+# 7. CRÉER config.properties
+cat > config.properties << 'EOF'
+# CryptoStegano Pro — Configuration Linux
+shodan.api.key=
+gemini.api.key=
+
+nids.interface=eth0
+nids.rules.path=./rules/local.rules
+nids.syn.threshold=500
+nids.icmp.threshold=200
+nids.ssh.brute.threshold=50
+
+nmap.path=/usr/bin/nmap
+network.scan.timeout=30
+network.arp.range=192.168.1.0/24
+
+steg.default.bits=2
+steg.output.format=PNG
+steg.aes.enabled=true
+
+ui.theme=dark
+ui.language=fr
+ui.kiosk.mode=false
+
+log.level=INFO
+log.export.path=./logs/
+log.max.size=50MB
+EOF
+
+# 8. CRÉER rules/local.rules
+cat > rules/local.rules << 'EOF'
+# CryptoStegano Pro — Règles NIDS
+alert tcp any any -> $HOME_NET any (flags:S; threshold: type threshold, track by_src, count 100, seconds 10; msg:"SYN Flood detected"; sid:1000001; rev:1;)
+alert tcp any any -> $HOME_NET 22 (flags:S; threshold: type threshold, track by_src, count 5, seconds 60; msg:"SSH Brute Force attempt"; sid:1000002; rev:1;)
+alert tcp any any -> $HOME_NET any (flags:S; threshold: type threshold, track by_src, count 50, seconds 10; msg:"Port Scan detected"; sid:1000003; rev:1;)
+alert icmp any any -> $HOME_NET any (itype:8; threshold: type threshold, track by_src, count 50, seconds 10; msg:"ICMP Flood detected"; sid:1000004; rev:1;)
+alert udp any 53 -> $HOME_NET any (byte_test:2,>,512,2; msg:"DNS Amplification attack"; sid:1000005; rev:1;)
+alert tcp any any -> $HOME_NET 445 (content:"|FF|SMB"; depth:5; msg:"SMBv1 detected (deprecated)"; sid:1000006; rev:1;)
+alert tcp any any -> $HOME_NET 23 (flags:S; msg:"Telnet connection attempt (insecure)"; sid:1000007; rev:1;)
+alert tcp any any -> $HOME_NET 80 (content:"admin"; http_uri; nocase; msg:"Admin panel access attempt"; sid:1000008; rev:1;)
+alert tcp any any -> $HOME_NET 21 (content:"USER anonymous"; nocase; msg:"FTP anonymous login attempt"; sid:1000009; rev:1;)
+alert tcp any any -> $HOME_NET 3306 (content:"root"; msg:"MySQL root login attempt"; sid:1000010; rev:1;)
+EOF
+
+# 9. CRÉER LE SCRIPT DE LANCEMENT
+cat > launch.sh << 'EOF'
+#!/bin/bash
+# Script de lancement CryptoStegano Pro
+
+# Vérifier Java
+if ! command -v java &> /dev/null; then
+    echo "❌ Java non installé. Installez avec : sudo apt install openjdk-17-jdk"
+    exit 1
+fi
+
+# Vérifier version Java
+JAVA_VERSION=$(java -version 2>&1 | awk -F '"' '/version/ {print $2}' | awk -F. '{print $1}')
+if [ "$JAVA_VERSION" -lt 17 ]; then
+    echo "❌ Java 17+ requis. Version actuelle : $JAVA_VERSION"
+    exit 1
+fi
+
+# Vérifier Nmap
+if ! command -v nmap &> /dev/null; then
+    echo "⚠️  Nmap non installé. Installez avec : sudo apt install nmap"
+fi
+
+# Aller dans le dossier du script
+cd "$(dirname "$0")"
+
+# Lancer l'application
+echo "🚀 Lancement de CryptoStegano Pro..."
+java -jar CryptoSteganoPro-2.0.0.jar
+EOF
+
+chmod +x launch.sh
+
+# 10. DONNER LES PERMISSIONS POUR NIDS (capture de paquets)
+sudo setcap cap_net_raw,cap_net_admin=eip $(which java)
+
+# 11. LANCER L'APPLICATION
+./launch.sh
+# Ou avec sudo pour NIDS : sudo java -jar CryptoSteganoPro-2.0.0.jar
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 🍎 INSTALLATION macOS
+# ──────────────────────────────────────────────────────────────────────────────
+
+# 1. INSTALLER HOMEBREW (si non installé)
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+# Ajouter au PATH si demandé :
+echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zprofile
+eval "$(/opt/homebrew/bin/brew shellenv)"
+
+# 2. INSTALLER JAVA JDK 17+
+brew install openjdk@17
+sudo ln -sfn /opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk /Library/Java/JavaVirtualMachines/openjdk-17.jdk
+echo 'export PATH="/opt/homebrew/opt/openjdk@17/bin:$PATH"' >> ~/.zshrc
+source ~/.zshrc
+java -version  # Vérifier
+
+# 3. INSTALLER NMAP
+brew install nmap
+nmap --version  # Vérifier
+
+# 4. VÉRIFIER LIBPCAP (préinstallé sur macOS)
+ls /usr/lib/libpcap*
+
+# 5. CRÉER LA STRUCTURE
+mkdir -p ~/Applications/CryptoSteganoPro
+cd ~/Applications/CryptoSteganoPro
+mkdir -p rules logs exports temp
+
+# 6. TÉLÉCHARGER L'APPLICATION
+curl -L -o CryptoSteganoPro-2.0.0.jar https://github.com/samou2/CryptoSteganoPro/releases/download/v2.0.0/CryptoSteganoPro-2.0.0.jar
+
+# 7. CRÉER config.properties
+cat > config.properties << 'EOF'
+# CryptoStegano Pro — Configuration macOS
+shodan.api.key=
+gemini.api.key=
+
+nids.interface=en0
+nids.rules.path=./rules/local.rules
+nids.syn.threshold=500
+nids.icmp.threshold=200
+nids.ssh.brute.threshold=50
+
+nmap.path=/opt/homebrew/bin/nmap
+network.scan.timeout=30
+network.arp.range=192.168.1.0/24
+
+steg.default.bits=2
+steg.output.format=PNG
+steg.aes.enabled=true
+
+ui.theme=dark
+ui.language=fr
+ui.kiosk.mode=false
+
+log.level=INFO
+log.export.path=./logs/
+log.max.size=50MB
+EOF
+
+# 8. CRÉER rules/local.rules
+cat > rules/local.rules << 'EOF'
+# CryptoStegano Pro — Règles NIDS
+alert tcp any any -> $HOME_NET any (flags:S; threshold: type threshold, track by_src, count 100, seconds 10; msg:"SYN Flood detected"; sid:1000001; rev:1;)
+alert tcp any any -> $HOME_NET 22 (flags:S; threshold: type threshold, track by_src, count 5, seconds 60; msg:"SSH Brute Force attempt"; sid:1000002; rev:1;)
+alert tcp any any -> $HOME_NET any (flags:S; threshold: type threshold, track by_src, count 50, seconds 10; msg:"Port Scan detected"; sid:1000003; rev:1;)
+alert icmp any any -> $HOME_NET any (itype:8; threshold: type threshold, track by_src, count 50, seconds 10; msg:"ICMP Flood detected"; sid:1000004; rev:1;)
+alert udp any 53 -> $HOME_NET any (byte_test:2,>,512,2; msg:"DNS Amplification attack"; sid:1000005; rev:1;)
+alert tcp any any -> $HOME_NET 445 (content:"|FF|SMB"; depth:5; msg:"SMBv1 detected (deprecated)"; sid:1000006; rev:1;)
+alert tcp any any -> $HOME_NET 23 (flags:S; msg:"Telnet connection attempt (insecure)"; sid:1000007; rev:1;)
+alert tcp any any -> $HOME_NET 80 (content:"admin"; http_uri; nocase; msg:"Admin panel access attempt"; sid:1000008; rev:1;)
+alert tcp any any -> $HOME_NET 21 (content:"USER anonymous"; nocase; msg:"FTP anonymous login attempt"; sid:1000009; rev:1;)
+alert tcp any any -> $HOME_NET 3306 (content:"root"; msg:"MySQL root login attempt"; sid:1000010; rev:1;)
+EOF
+
+# 9. CRÉER LE SCRIPT DE LANCEMENT
+cat > launch.command << 'EOF'
+#!/bin/bash
+# Script de lancement CryptoStegano Pro macOS
+
+cd "$(dirname "$0")"
+
+if ! command -v java &> /dev/null; then
+    osascript -e 'display dialog "Java non installé. Installez OpenJDK 17+ avec Homebrew." buttons {"OK"} default button "OK"'
+    exit 1
+fi
+
+java -jar CryptoSteganoPro-2.0.0.jar
+EOF
+
+chmod +x launch.command
+
+# 10. LANCER L'APPLICATION
+./launch.command
+# Ou avec sudo pour NIDS : sudo java -jar CryptoSteganoPro-2.0.0.jar
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 🛠️ INSTALLATION DEPUIS LES SOURCES (Tous OS)
+# ──────────────────────────────────────────────────────────────────────────────
+
+# 1. INSTALLER GIT
+# Windows : winget install Git.Git
+# Linux   : sudo apt install git
+# macOS   : brew install git
+
+# 2. INSTALLER MAVEN
+# Windows : winget install Apache.Maven
+# Linux   : sudo apt install maven
+# macOS   : brew install maven
+
+# 3. CLONER LE PROJET
+git clone https://github.com/samou2/CryptoSteganoPro.git
+cd CryptoSteganoPro
+
+# 4. COMPILER LE PROJET
+mvn clean package -DskipTests
+
+# 5. LE JAR EST GÉNÉRÉ DANS
+# target/CryptoSteganoPro-2.0.0.jar
+
+# 6. GÉNÉRER LE .EXE (Windows uniquement)
+mvn clean package -P windows-exe
+# Le .exe sera dans target/CryptoSteganoPro-2.0.0.exe
+
+# 7. LANCER EN MODE DÉVELOPPEMENT
+mvn javafx:run
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# ✅ VÉRIFICATION DE L'INSTALLATION
+# ──────────────────────────────────────────────────────────────────────────────
+
+# WINDOWS (PowerShell)
+java -version
+nmap --version
+Test-Path config.properties
+Test-Path rules\local.rules
+
+# LINUX / macOS (Bash)
+java -version
+nmap --version
+ls -la config.properties
+ls -la rules/local.rules
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 🔧 CONFIGURATION OPTIONNELLE
+# ──────────────────────────────────────────────────────────────────────────────
+
+# OBTENIR UNE CLÉ API SHODAN (optionnel)
+# 1. Aller sur https://www.shodan.io/
+# 2. Créer un compte
+# 3. Account → API Key
+# 4. Éditer config.properties :
+#    shodan.api.key=VOTRE_CLE_ICI
+
+# OBTENIR UNE CLÉ API GEMINI (optionnel)
+# 1. Aller sur https://makersuite.google.com/app/apikey
+# 2. Créer une nouvelle clé
+# 3. Éditer config.properties :
+#    gemini.api.key=VOTRE_CLE_ICI
+
+# DÉTECTER L'INTERFACE RÉSEAU
+# Windows : ipconfig /all
+# Linux   : ip link show
+# macOS   : ifconfig
+# Éditer config.properties : nids.interface=VOTRE_INTERFACE
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 🐛 RÉSOLUTION DE PROBLÈMES
+# ──────────────────────────────────────────────────────────────────────────────
+
+# "Java n'est pas reconnu"
+# Windows : Ajouter Java au PATH (Panneau de configuration → Système → Variables d'environnement)
+# Linux   : export JAVA_HOME=/usr/lib/jvm/java-17-openjdk && export PATH=$JAVA_HOME/bin:$PATH
+# macOS   : export JAVA_HOME=$(/usr/libexec/java_home -v 17) && export PATH=$JAVA_HOME/bin:$PATH
+
+# "Erreur UnsatisfiedLinkError (Pcap4J)"
+# Windows : Installer Npcap depuis https://npcap.com/#download
+# Linux   : sudo apt install libpcap-dev
+# macOS   : libpcap est préinstallé (vérifier avec : ls /usr/lib/libpcap*)
+
+# "Permission denied" (NIDS)
+# Linux   : sudo setcap cap_net_raw,cap_net_admin=eip $(which java)
+# macOS   : sudo java -jar CryptoSteganoPro-2.0.0.jar
+
+# "Nmap not found"
+# Vérifier installation : nmap --version
+# Vérifier chemin dans config.properties
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 📦 STRUCTURE FINALE DES FICHIERS
+# ──────────────────────────────────────────────────────────────────────────────
+
+# CryptoSteganoPro/
+# │
+# ├── CryptoSteganoPro-2.0.0.exe (Windows) ou .jar (tous OS)
+# ├── config.properties
+# ├── launch.sh (Linux) ou launch.command (macOS)
+# │
+# ├── rules/
+# │   └── local.rules
+# │
+# ├── logs/
+# │   └── (fichiers générés automatiquement)
+# │
+# ├── exports/
+# │   └── (rapports exportés)
+# │
+# └── temp/
+#     └── (fichiers temporaires)
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 🚀 LANCEMENT RAPIDE
+# ──────────────────────────────────────────────────────────────────────────────
+
+# WINDOWS
+# Double-clic sur CryptoSteganoPro-2.0.0.exe
+# Ou : .\CryptoSteganoPro-2.0.0.exe
+# Ou : java -jar CryptoSteganoPro-2.0.0.jar
+
+# LINUX
+# ./launch.sh
+# Ou : java -jar CryptoSteganoPro-2.0.0.jar
+# Avec sudo : sudo java -jar CryptoSteganoPro-2.0.0.jar
+
+# macOS
+# Double-clic sur launch.command
+# Ou : java -jar CryptoSteganoPro-2.0.0.jar
+# Avec sudo : sudo java -jar CryptoSteganoPro-2.0.0.jar
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ✅ INSTALLATION TERMINÉE !
+# Lancez CryptoStegano Pro et explorez les 7 modules de cybersécurité
+# Support : samoumegharba210@gmail.com
+# Documentation : https://github.com/samou2/CryptoSteganoPro
+# ══════════════════════════════════════════════════════════════════════════════
+```
